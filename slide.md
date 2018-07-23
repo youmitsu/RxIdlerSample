@@ -10,9 +10,8 @@ RxJavaを使ったAndroidアプリで非同期処理のUIテストをやるな�
 
 1. UIテストとは
 1. UIテストのつらみ
-1. 解決策〜sleep〜
-1. 解決策〜EspressoIdlingResources〜
-1. 解決策〜そこでRxIdler〜
+1. よくある解決策
+1. RxIdlerの紹介
 1. まとめ
 
 ---
@@ -86,7 +85,7 @@ https://developer.android.com/training/testing/ui-testing/espresso-testing
 
 AndroidのUIテスト用のフレームワーク。
 
-![espresso.png](image/espresso.png)
+<!-- ![espresso.png](image/espresso.png) -->
 
 - リソースのidなどを使用したUIの取得 => ViewMatcher
 - UIに対するアクション（タップ、スクロールなど） => ViewActions
