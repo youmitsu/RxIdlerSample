@@ -2,43 +2,56 @@
 
 こんにちは、私はAndroidアプリエンジニアをやっております。仕事の中で担当しているアプリのリグレッションテストを自動化しようという流れがあり、Espressoを使って実現することになりました。ただ、非同期処理が多く混じるテストの中で同期的にUIのテストをするのはつらみがあります。そこでここでは、非同期処理の際の便利なライブラリ「RxIder」についてここに至るまでの経緯も含めてご紹介したいと思います。 -->
 
-RxJavaを使ったAndroidアプリで非同期処理のUIテストをやるならRxIdlerが便利
+### `RxJavaを使ったAndroidアプリで非同期処理のUIテストをやるならRxIdlerが便利`
 
 ---
 
-## アジェンダ
+### アジェンダ
 
 1. UIテストとは
+
 1. UIテストのつらみ
+
 1. よくある解決策
+
 1. RxIdlerの紹介
+
 1. まとめ
 
 ---
 
-## 軽く自己紹介
+### 軽く自己紹介
 
 三堀 裕
 
 
 - 株式会社エムティーアイ所属
 - 社会人2年目
-- Androidアプリ担当
+- Androidアプリエンジニア
+- 外部LT初登壇(汗)
 
 
 - Twitter: @1013Youmeee
 - Qiita: https://qiita.com/youmeee
+- GitHub: https://github.com/youmitsu
 
 ---
 
-## 対象者
+### 対象者
 
 - AndroidでUIテストをやってみたいと思っている方
 - RxJavaを使っているアプリでUIテストでの非同期処理に困っている方
 
 ---
 
-## 背景
+### 前提
+
+- RxJavaを使ってAPIコールなどの非同期処理をしているアプリ
+- APIコールのモックなどはせず、実際のユーザがやるようなシナリオテスト的な観点のテスト
+
+---
+
+### 背景
 
 - 仕事で担当するアプリにおいてシナリオテストを自動化しようと流れ
 - ケースを書いていく中で非同期処理をうまく同期的にテストする仕組みが欲しいと感じるようになった
@@ -46,14 +59,7 @@ RxJavaを使ったAndroidアプリで非同期処理のUIテストをやるな�
 
 ---
 
-## 前提
-
-- RxJavaを使ってAPIコールなどの非同期処理をしているアプリ
-- APIコールのモックなどはせず、シナリオテスト的な観点でテストを行う
-
----
-
-## UIテストとは
+### UIテストとは
 
 - 画面内に特定のUIコンポーネントがあるかどうか
 - このボタンを押した後にこの画面が表示されるか
@@ -62,7 +68,7 @@ RxJavaを使ったAndroidアプリで非同期処理のUIテストをやるな�
 
 ---
 
-## AndroidにおけるUIテスト
+### AndroidにおけるUIテスト
 
 AndroidでUIテストを行うには、以下の二つの仕組みを使います
 
@@ -71,7 +77,7 @@ AndroidでUIテストを行うには、以下の二つの仕組みを使いま�
 
 >>>
 
-## `Android Instrumental Test`
+### `Android Instrumental Test`
 
 UnitTestのようなJVM上で動作するテストと違い、Androidの実機でテストをする仕組み。
 導入方法は以下を参照
@@ -81,26 +87,25 @@ https://developer.android.com/training/testing/ui-testing/espresso-testing
 
 >>>
 
-## `Espresso`
+### `Espresso`
 
 AndroidのUIテスト用のフレームワーク。
 
-- リソースのidなどを使用したUIの取得 => ViewMatcher
-- UIに対するアクション（タップ、スクロールなど） => ViewActions
-- アサーション(表示されているか、文字が正しいかなど) => ViewAssertion
-
+- リソースのidなどを使用したUIの取得（ViewMatcher）
+- UIに対するアクション（タップ、スクロールなど）（ViewActions）
+- アサーション(表示されているか、文字が正しいかなど)（ViewAssertion）
 
 https://developer.android.com/training/testing/espresso/
 
 ---
 
-## UIテストのつらみ
+### UIテストのつらみ
 
-- APIリクエストなどの非同期処理の完了を待たずに次のリソースの取得、アサーションに映ってしまいテストが失敗してしまう
+- APIリクエストなどの非同期処理後の画面反映を待たずに次のリソースの取得、アサーションに映ってしまいテストが失敗してしまう
 
 ---
 
-## 具体例
+### 具体例
 
 
 ```
@@ -112,132 +117,36 @@ https://developer.android.com/training/testing/espresso/
          */
 
         //非同期処理の終了を待たずにアサーションが走りテストが失敗する
-        assertListText("first")
-        assertListText("second")
-        assertListText("third")
-        assertListText("fourth")
-        assertListText("fifth")
+        onView(allOf(withId(R.id.data_str), isDisplayed()))
+          .check(matches(withText("completed")))
     }
 ```
 
 ---
 
-## 主な解決策3つ
+### 主な解決策3つ
 
-1. だいたいこれくらい待てばいけるっしょパターン
-1. ダメだったらリトライするパターン
-1. UIの状態で判断するパターン
+1. sleepを使って待つパターン
+1. 反映されるまでリトライするパターン
+1. UIの状態で判断するパターン(IdlingResources)
 
----
-
-## 解決策①
-
-〜だいたいこれくらい待てばいけるっしょパターン〜
-
-
-- 非同期処理が終わるであろう時間までsleepする
+[Idling Resourcesについてはこちらを参照](https://developer.android.com/training/testing/espresso/idling-resource)
 
 ---
 
-## コード例
+どのパターンもそれぞれ辛い...
 
-```
-
-@Test
-fun testBySleep() {
-    /**
-     * APIリクエストなどの非同期処理
-     */
-
-    //だいたいこれくらい待てば表示されてるでしょっていう時間待つ(13秒待つ)
-    Thread.sleep(13000)
-
-    //待ったあとには表示されているはずなので、テストが通る
-    assertListText("first")
-    assertListText("second")
-    ...
-}
-
-```
+辛い理由はQiitaに載せます
 
 ---
 
-## メリット・デメリット
-
----
-
-### メリット
-- 簡単に実装できる
-
----
-
-### デメリット
-- sleepしている時間よりも早く処理が終わった場合、余分なsleep時間が生まれてしまう。
-- 全体のテスト実行時間が長くなる(テストファームなどを使用している時に料金に関わってくる)
-
----
-
-## 解決策②
-
-〜ダメだったらリトライするパターン〜
-
-
-- アサーションが成功するまでリトライする
-- 実装例は割愛
-
----
-
-## メリット・デメリット
-
----
-
-### メリット
-- なし
-
----
-
-### デメリット
-- sleepと同様で、実行時間が長くなる
-
----
-
-## 解決策③
-
-〜UIの状態で判断するパターン〜
-
-- EspressoIdlingResourcesと呼ばれるものを使ってやるパターン
-コンポーネントの状態からそのUIがアイドリング状態かを判断し、アイドリングの状態だったら待つみたいなことができる
-(例： RecyclerViewのアダプターのsizeが0じゃなかったらアイドルとみなすなど)
-
-- https://developer.android.com/training/testing/espresso/idling-resource
-
-- 実装例は割愛
-
----
-
-## メリット・デメリット
-
----
-
-### メリット
-- 実行時間の短縮ができ、効率的なテストができる
-
----
-
-### デメリット
-- 「非同期処理の完了通知->画面反映」の画面反映の部分にフォーカスしているため少し冗長(ブラックボックス的)
-- プロダクトコードを修正しなければならなかったりする
-- 自分でIdlingResourcesのクラスを自作しなければならなかったりと色々面倒
-
----
-
-## 本題
+### 本題
 
 〜そこでRxIdler〜
 
 ---
 
-## `RxIdler`の概要
+### `RxIdler`の概要
 
 - Square製のライブラリ(Jake)
 - IdlingResourcesをラップしている
@@ -248,7 +157,7 @@ https://github.com/square/RxIdler
 
 ---
 
-## インストール
+### インストール
 
 `build.gradle`に以下を記述
 
@@ -258,10 +167,10 @@ androidTestImplementation 'com.squareup.rx.idler:rx2-idler:0.9.0'
 
 ---
 
-## コード例
+### コード例
 
 以下のように
-`@Before`が付いているメソッド内でcomputationSchedulerHandlerにRxIdlerのスケジューラを定義するだけ
+`@Before`が付いているメソッド内でRxJavaPluginsを使って、RxIdlerのスケジューラを定義するだけ
 
 ```
     @Before
@@ -277,37 +186,27 @@ androidTestImplementation 'com.squareup.rx.idler:rx2-idler:0.9.0'
 
 ---
 
-## メリット・デメリット
+### メリット・デメリット
 
 ---
 
 ### メリット
 
+- テストがとても効率的に実行可能
 - とても簡単
   - TestRunnerの@Beforeに書くだけで全てのRxJavaでの非同期処理にIdlingResourcesを適用してくれる
 - プロダクトコードをいじらなくて済む
 
 ---
 
-### デメリット
+### デメリット・注意点
 - RxJavaでしか使えない。
+- たまに待ってくれない箇所もある。WebViewとか(全ての非同期処理これでなんとかなるわけではない)
+- サンプルを作ろうとしたが、RxIdlerを使わなくても勝手に待ってくれることもあったりするので、もう少しRxIdlerで対応できるところ、できないところを明確にしていきたい
 
 ---
 
-### 注意点
-- アプリ起動後すぐの非同期処理などは待ってくれずそのまま落ちたりする(原因わからず)
+### まとめ
 
----
-
-## サンプル
-
-サンプルコードは以下にあげています
-
-https://github.com/youmitsu/RxIdlerTestApp
-
----
-
-## まとめ
-
-- RxIdlerを使うとRxJavaでの非同期処理をよしなに待ってくれるので便利
+- RxIdlerを使うとRxJavaでの非同期処理をよしなにして待ってくれるので便利
 - たまに待ってくれない箇所もあるため、一旦実行してみて落ちるようなあればsleepするなどの対策が必要かも？
