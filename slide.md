@@ -85,8 +85,6 @@ https://developer.android.com/training/testing/ui-testing/espresso-testing
 
 AndroidのUIテスト用のフレームワーク。
 
-<!-- ![espresso.png](image/espresso.png) -->
-
 - リソースのidなどを使用したUIの取得 => ViewMatcher
 - UIに対するアクション（タップ、スクロールなど） => ViewActions
 - アサーション(表示されているか、文字が正しいかなど) => ViewAssertion
