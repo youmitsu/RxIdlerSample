@@ -127,7 +127,7 @@ https://developer.android.com/training/testing/espresso/
 ### 主な解決策3つ
 
 1. sleepを使って待つパターン
-1. 反映されるまでリトライするパターン
+1. 反映されるまでリトライするラッパークラスを作るパターン
 1. UIの状態で判断するパターン(IdlingResources)
 
 [Idling Resourcesについてはこちらを参照](https://developer.android.com/training/testing/espresso/idling-resource)
@@ -210,3 +210,13 @@ androidTestImplementation 'com.squareup.rx.idler:rx2-idler:0.9.0'
 
 - RxIdlerを使うとRxJavaでの非同期処理をよしなにして待ってくれるので便利
 - たまに待ってくれない箇所もあるため、一旦実行してみて落ちるようなあればsleepするなどの対策が必要かも？
+
+---
+
+### 参考
+
+こちらの資料などを参考にさせていただきました
+
+- [RxJavaのアプリをEspressoでテストする簡単な方法](https://speakerdeck.com/kesin11/rxjavafalseapuriwoespressodetesutosurujian-dan-nafang-fa)
+
+- [Test apps on Android -Android Developer-](https://developer.android.com/training/testing/)
