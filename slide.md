@@ -231,7 +231,7 @@ fun testBySleep() {
 
 ---
 
-## 解決策③
+## 本題
 
 〜そこでRxIdler〜
 
