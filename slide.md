@@ -1,8 +1,4 @@
-<!-- # 背景
-
-こんにちは、私はAndroidアプリエンジニアをやっております。仕事の中で担当しているアプリのリグレッションテストを自動化しようという流れがあり、Espressoを使って実現することになりました。ただ、非同期処理が多く混じるテストの中で同期的にUIのテストをするのはつらみがあります。そこでここでは、非同期処理の際の便利なライブラリ「RxIder」についてここに至るまでの経緯も含めてご紹介したいと思います。 -->
-
-### `RxJavaを使ったAndroidアプリで非同期処理のUIテストをやるならRxIdlerが便利`
+### `UIテストにおけるRxIdlerが便利だった話`
 
 ---
 
@@ -41,22 +37,22 @@
 
 - 前提
   - RxJavaを使ってAPIコールなどの非同期処理をしているAndroidアプリ
-- UIテスト上で、うまく非同期処理を待たせる「RxIdler」というライブラリについて
+- UIテストで、いい感じに非同期処理を待たせる「RxIdler」というライブラリの紹介
 
 ---
 
-### 対象者
+### 誰得？
 
 - AndroidでUIテストをやってみたいと思っている方
-- RxJavaを使っているアプリでUIテストでの非同期処理に困っている方
+- RxJavaを使っているアプリで、UIテストでの非同期処理に困っている方
 
 ---
 
 ### 背景
 
-- 仕事で担当するアプリにおいてシナリオテストを自動化しようと流れ
-- ケースを書いていく中で非同期処理をうまく同期的にテストする仕組みが欲しいと感じるようになった
-- Android TestNightに参加した時にDeNAのSWETの方にRxIdlerが良いというお話を聞いたので試してみたらいい感じだった
+- 仕事で担当するアプリにおいてシナリオテストを自動化
+- 非同期処理をうまく同期的にテストする仕組みが欲しい
+- Android TestNightに参加した時、DeNAのSWETの方にRxIdlerが良いというお話を聞いたので試してみたらいい感じだった
 
 ---
 
@@ -65,13 +61,14 @@
 - 画面内に特定のUIコンポーネントがあるかどうか
 - このボタンを押した後にこの画面が表示されるか
 
-などの実際に実機で操作する時のアプリの挙動をテストすることができるものです。
+
+などの実際に実機で操作する時のアプリの挙動をテストできるもの
 
 ---
 
 ### AndroidにおけるUIテスト
 
-AndroidでUIテストを行うには、以下の二つの仕組みを使います
+AndroidでUIテストを行う上で、主に二つの仕組み
 
 - InstrumentalTest
 - Espresso
@@ -81,6 +78,8 @@ AndroidでUIテストを行うには、以下の二つの仕組みを使いま�
 ### `Android Instrumental Test`
 
 UnitTestのようなJVM上で動作するテストと違い、Androidの実機でテストをする仕組み。
+
+
 導入方法は以下を参照
 
 
@@ -92,9 +91,9 @@ https://developer.android.com/training/testing/ui-testing/espresso-testing
 
 AndroidのUIテスト用のフレームワーク。
 
-- リソースのidなどを使用したUIの取得（ViewMatcher）
-- UIに対するアクション（タップ、スクロールなど）（ViewActions）
-- アサーション(表示されているか、文字が正しいかなど)（ViewAssertion）
+- リソースのidなどを使用したUIの取得
+- UIに対するアクション（タップ、スクロールなど）
+- アサーション(表示されているか、文字が正しいかなど)
 
 https://developer.android.com/training/testing/espresso/
 
@@ -102,7 +101,13 @@ https://developer.android.com/training/testing/espresso/
 
 ### UIテストのつらみ
 
-- APIリクエストなどの非同期処理後の画面反映を待たずに次のリソースの取得、アサーションに映ってしまいテストが失敗してしまう
+
+APIリクエストなどの非同期処理後の画面反映を待たずに、
+
+次のリソースの取得、アサーションに映ってしまいテストが失敗してしまう
+
+
+※AsyncTaskやMessageQueueなどは待ってくれる
 
 ---
 
@@ -151,7 +156,7 @@ https://developer.android.com/training/testing/espresso/
 
 - Square製のライブラリ(Jake)
 - IdlingResourcesをラップしている
-- RxJavaの非同期処理をしている別スレッド上の動きから、そのスレッドがアイドル状態かどうかで判断する
+- RxJavaの非同期処理をしている別スレッド上の処理をしているとき、IdlingResourceをincrement及びdecrementする
 - 単純な宣言
 
 https://github.com/square/RxIdler
@@ -170,7 +175,6 @@ androidTestImplementation 'com.squareup.rx.idler:rx2-idler:0.9.0'
 
 ### コード例
 
-以下のように
 `@Before`が付いているメソッド内でRxJavaPluginsを使って、RxIdlerのスケジューラを定義するだけ
 
 ```
@@ -178,7 +182,7 @@ androidTestImplementation 'com.squareup.rx.idler:rx2-idler:0.9.0'
     fun setUp() {
         //その他初期化処理
 
-        //以下を記述(RxJavaのSchedulerタイプに応じて使うメソッドを変える)
+        //RxJavaのSchedulerタイプに応じて使うメソッドを変える(Schedulers.io()なら以下)
         RxJavaPlugins.setInitIoSchedulerHandler(
                 Rx2Idler.create("RxJava 2.x Io Scheduler")
         )
@@ -195,14 +199,15 @@ androidTestImplementation 'com.squareup.rx.idler:rx2-idler:0.9.0'
 
 - テストがとても効率的に実行可能
 - とても簡単
-  - TestRunnerの@Beforeに書くだけで全てのRxJavaでの非同期処理にIdlingResourcesを適用してくれる
+  - TestRunnerの初期化時に一行書くだけ
+  - RxJavaでの非同期処理にIdlingResourcesを適用してくれる
 - プロダクトコードをいじらなくて済む
 
 ---
 
 ### デメリット・注意点
 - RxJavaでしか使えない。
-- たまに待ってくれない箇所もある。WebViewとか(全ての非同期処理これでなんとかなるわけではない)
+- たまに待ってくれない箇所もある。(WebViewにおいてフックするURLを待っている時など)
 - サンプルを作ろうとしたが、RxIdlerを使わなくても勝手に待ってくれることもあったりするので、もう少しRxIdlerで対応できるところ、できないところを明確にしていきたい
 
 ---
